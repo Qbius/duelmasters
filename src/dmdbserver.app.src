@@ -1,0 +1,16 @@
+{application, dmdbserver, [
+    {description, "Duel Masters Portal Extraordinaire"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {mod, {dmdbserver_app, []}},
+    {applications, [
+        kernel,
+        stdlib,
+        cowboy,
+        jsx
+    ]},
+    {env, []},
+    {modules, []},
+    {licenses, ["GPLv3"]},
+    {links, []}
+ ]}.

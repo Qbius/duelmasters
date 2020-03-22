@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:v-on="http://www.w3.org/1999/xhtml" xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
+<head>
+    <title>DMDB</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link rel="stylesheet" href="/client/index.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.11"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="https://unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.js"/>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/10.6.2/css/bootstrap-slider.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/10.6.2/bootstrap-slider.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.8.4/Sortable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Vue.Draggable/2.20.0/vuedraggable.umd.min.js"></script>
+   </head>
+<body>
+<div id="app">
+<!--
+    TEMPLATES
+    TEMPLATES
+    TEMPLATES
+-->
+
+    <!-- 
+        CARD 
+    -->
+
+    <script type="text/x-template" id="card">
+        <div :style="cardstyle + ((divclass === 'pilecard') ? `z-index: ${dndindex}` : 'margin-left: 20px; margin-right: 20px;')" :class="'gamecard-container ' + divclass">
+            <img v-if="cardname !== 'empty'" :style="cardstyle" :src="image" :dnd-index="dndindex" ref="card_element" cover="false" @contextmenu.stop.prevent="change_tap()" v-on:dblclick.stop.prevent="change_cover()"></img>
+        </div>
+    </script>
+
+    <!--
+        ZONE
+    -->
+    <script type="text/x-template" id="zone">
+        <div @mousemove.stop.prevent="mouse_move($event)" @mousedown.stop.prevent="mouse_down($event)" :style="zonestyle" :class="pile ? 'pile' : 'zone'" :id="zonename" dnd-model="innermodel">
+            <card v-for="(card, index) in innermodel" :key="card.id" :divclass="pile ? 'pilecard' : ((zonename === 'mana-zone') ? 'manacard' : '')" :dndindex="index" :cardname='card'></card>
+        </div>
+    </script>
+
+    <!--
+        GAME
+    -->
+
+    <script type="text/x-template" id="game">
+        <div style="height: 100%; display: flex; flex-direction: column; align-item: stretch;">
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-start;">
+                <div style="display: flex;">
+                    <zone zonename="deck-zone" :pile="true" :model="deckzone"></zone>
+                    <zone zonename="hand-zone" style="flex: 1;" :model="handzone"></zone>
+                    <zone zonename="graveyard-zone" :pile="true" :model="gravezone"></zone>
+                </div>
+                <zone zonename="mana-zone" :model="manazone"></zone>
+                <zone zonename="shield-zone" :model="shieldzone"></zone>
+                <zone zonename="battle-zone" :model="battlezone"></zone>
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end;">
+                <zone zonename="battle-zone" :model="battlezone" :dragged="dragged"></zone>
+                <zone zonename="shield-zone" :model="shieldzone" :dragged="dragged"></zone>
+                <zone zonename="mana-zone" :model="manazone" :dragged="dragged"></zone>
+                <div style="display: flex;">
+                    <zone zonename="graveyard-zone" :pile="true" :model="gravezone" :dragged="dragged"></zone>
+                    <zone zonename="hand-zone" style="flex: 1;" :model="handzone" :dragged="dragged"></zone>
+                    <zone zonename="deck-zone" :pile="true" :model="deckzone" :dragged="dragged"></zone>
+                </div>
+            </div>
+        </div>
+    </script>
+
+    <!--
+        TAGS
+    -->
+
+    <script type='text/x-template' id='tags'>
+        <div class="column-container">
+            <b-input-group v-for="(row, index) in rows" style="user-select: none;">
+                <b-form-tags input-id="tags-pills" v-model="modelvar.data.rows[index]" tag-variant="secondary" tag-pills size="sm" remove-on-delete :placeholder="(row && row.length > 0 ) ? '' : 'Name, race, effect...'"/>
+                <b-input-group-append>
+                    <b-button @click="addrow(index)" size="sm" :variant="(((index + 1) == rows.length)) ? 'secondary' : 'danger'">{{ (((index + 1) == rows.length)) ? '+' : 'X' }}</b-button>
+                </b-input-group-append>
+            </b-input-group>
+        </div>
+    </script>
+
+    <!--
+        PICKER
+    -->
+    <script type='text/x-template' id='picker'>
+        <div class="picker-container">
+            <b-form-checkbox pill class="picker-item" v-for="opt in opts" @change="conflict(opt.value)" v-model="modelvar.data[opt.value]" name="whatever" :size="opt.size" button squared :button-variant="opt.variant"><font size="1">{{opt.text}}</font></b-form-checkbox>
+        </div>
+    </script>
+
+    <!--
+        SLIDER
+    -->
+
+    <script type='text/x-template' id='slider'>
+        <div class="paddin-column-container">
+            <div class="slider-title">
+                <div class="first-slider-badge">
+                    <b-badge pill>{{ modelvar.lower }}</b-badge>
+                </div>
+                <div class="second-slider-badge">
+                    <b-badge>{{ title }}</b-badge>
+                </div>
+                <div class="third-slider-badge">
+                    <b-badge pill>{{ modelvar.upper }}</b-badge>
+                </div>
+            </div>
+            <div class="slider-proper">
+                <b-form-input ref="background_slider" class="corer" :style="bgstyle + 'position: absolute; z-index: 1;'" type="range" :min="points[0]" :max="points[1]" :step="points[2]"></b-form-input>
+                <b-form-input class="thumb" style="position: absolute; z-index: 2;" type="range" v-model="modelvar.data.lowerval" :min="points[0]" :max="points[1]" :step="points[2]"></b-form-input>
+                <b-form-input class="thumb" style="position: absolute; z-index: 3;" type="range" v-model="modelvar.data.upperval" :min="points[0]" :max="points[1]" :step="points[2]"></b-form-input>
+            </div>
+        </div>
+    </script>
+
+    <!--
+        TOTALBADGE
+    -->
+    <script type='text/x-template' id='totalbadge'>
+        <b-badge v-if="always || count > 0" class="totalbdg" :variant="badgevariant">
+            <slot></slot>
+            {{ count }}
+        </b-badge>
+    </script>
+
+<!--
+    END TEMPLATES
+    END TEMPLATES
+    END TEMPLATES
+-->
+
+    <div id="site">
+
+        <div id="side">
+            <div id="queries">
+
+                <div id="searchtype">
+                        <b-form-radio-group v-model="searchtypemodel" :options="[{text: 'CARD VIEW', value: 'tcg'}, {text: 'DECK VIEW', value: 'deck'}, {text: 'test', value: 'test'}]" buttons size="sm"></b-form-radio-group>
+                </div>
+
+                <div id="taggroup" class="query">
+                    <tags :modelvar="models.tags"></tags>
+                </div>
+
+                <div class="query pickem">
+                    <picker :modelvar="models.civ" :opts="civs"></picker>
+
+                    <div class="pickem-down">
+                        <picker :modelvar="models.typ" :opts="types"></picker>
+                        <picker :modelvar="models.civtyp" :opts="civtypes"></picker>
+                    </div>
+                </div>
+
+                <div class="query">
+                    <slider class="sliderman" :modelvar="models.cost" title="COST" :points="cost_points"></slider>
+
+                    <slider class="sliderman" :modelvar="models.power" title="POWER" :points="power_points"></slider>
+
+                    <slider class="sliderman" :modelvar="models.set" title="SET" :points="set_points"></slider>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-around;">
+                    <b-form-radio-group v-model="sorting.type" :options="[{text: 'A-Z', value: 'alphabetical'}, {text: 'Cost', value: 'cost'}, {text: 'Civ', value: 'civ'}]" buttons size="sm"></b-form-radio-group>
+                    <b-button square size="sm" @click="reset()">RESET</b-button>
+                </div>
+            </div>
+
+            <div id="deck">
+                <div id="totals">
+                    <div id="civtotals">
+                        <div id="tottotal-wrapper">
+                            <div class="subtotals-total">
+                                <totalbadge :always="true" :getcards="deck_cards_to_count" badgevariant="" :testf="_ => true"></totalbadge>
+                            </div>
+                        </div>
+                        <div id="civtotal-wrapper">
+                            <div class="subtotals">
+                                <totalbadge :getcards="deck_cards_to_count" badgevariant="danger" :testf="({'civilization': civs}) => civs.indexOf('fire') !== -1"></totalbadge>
+                                <totalbadge :getcards="deck_cards_to_count" badgevariant="dark" :testf="({'civilization': civs}) => civs.indexOf('darkness') !== -1"></totalbadge>
+                                <totalbadge :getcards="deck_cards_to_count" badgevariant="primary" :testf="({'civilization': civs}) => civs.indexOf('water') !== -1"></totalbadge>
+                                <totalbadge :getcards="deck_cards_to_count" badgevariant="success" :testf="({'civilization': civs}) => civs.indexOf('nature') !== -1"></totalbadge>
+                                <totalbadge :getcards="deck_cards_to_count" badgevariant="warning" :testf="({'civilization': civs}) => civs.indexOf('light') !== -1"></totalbadge>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="efftotals">
+                        <totalbadge :always="true" :getcards="deck_cards_to_count" badgevariant="light" :testf="is.shield_trigger"><img :src="shieldtrigger_icon"></totalbadge>
+                        <totalbadge :always="true" :getcards="deck_cards_to_count" badgevariant="light" :testf="is.blocker"><img :src="blocker_icon"></totalbadge>
+                        <totalbadge :getcards="deck_cards_to_count" badgevariant="light" :testf="is.evolution"><img :src="evolutioncreature_icon"></totalbadge>
+                        <totalbadge :getcards="deck_cards_to_count" badgevariant="light" :testf="is.wave_striker"><img :src="wavestriker_icon"></totalbadge>
+                        <totalbadge :getcards="deck_cards_to_count" badgevariant="light" :testf="is.survivor"><img :src="survivor_icon"></totalbadge>
+                    </div>
+                </div>
+                <div id="decktextcontainer">
+                    <textarea id="decktext" spellcheck="false" :style="decktext_style" v-model="active_deck.text"></textarea>
+                    <div id="deckoverlay-container-wrapper" :style="decktext_style">
+                        <div id="deckoverlay-container" :style="'height: ' + el_property('decktext', 'height') + ';'">
+                            <div v-for="[count, card] in deck_lines" class="deckoverlay">
+                                <div v-if="is_card(card) && is.shield_trigger(cardinfo(card))" class="deckoverlay-icon-wrapper"><img class="deckoverlay-icon" :src="shieldtrigger_icon"></div>
+                                <div v-if="is_card(card) && is.blocker(cardinfo(card))" class="deckoverlay-icon-wrapper"><img class="deckoverlay-icon" :src="blocker_icon"></div>
+                                <div v-if="is_card(card) && is.evolution(cardinfo(card))" class="deckoverlay-icon-wrapper"><img class="deckoverlay-icon" :src="evolutioncreature_icon"><font size="1px">{{ evolution_baits_count(card).toString() }}</font></div>
+                                <div v-if="is_card(card) && is.wave_striker(cardinfo(card))" class="deckoverlay-icon-wrapper"><img class="deckoverlay-icon" :src="wavestriker_icon"></div>
+                                <div v-if="is_card(card) && is.survivor(cardinfo(card))" class="deckoverlay-icon-wrapper"><img class="deckoverlay-icon" :src="survivor_icon"></div>
+                                <div v-if="!is_card(card) && count" class="deckoverlay-icon-wrapper"><span>&#x2757;</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="deckbuttons">
+                    <b-button square v-on:click="active_deck.text = ''">CLEAR</b-button>
+                    <b-button square v-on:click="copy_deck()" id="copybutton">COPY</b-button>
+                    <b-button square v-on:click="share_deck()">SHARE</b-button>
+                </div>
+                <textarea id="copier" style="width: 0px; height: 0px;"></textarea>
+            </div>
+
+        </div>
+
+        <div id="cards">
+            <div v-show="searchtypemodel === 'tcg' || searchtypemodel === 'deck'" id="cards-centered" :style="'width: ' + (cards_per_row * 224 + 2).toString() + 'px;'">
+                <div id="cards-queried" v-show="searchtypemodel === 'tcg'">
+                    <div class="card-container" v-for="(card, index) in cards" :key="card" :id="'card' + index.toString()" v-show="show[card]" :card="card" v-on:click="add_card(card)" @contextmenu="$event.preventDefault(); remove_card(card)">
+                    </div>
+                </div>
+                <div id="decks-tabs" v-show="searchtypemodel === 'deck'">
+                    <input type="file" id="invisiblefileinput" accept=".json" style="display: none;" @change="load_storage()">
+                    <div id="cards-deck">
+                        <div class="card-container" v-for="card in deck_cards" :key="card" :style="'width: 222px; height: ' + (307 + 20 * (Math.min(deck_cards_to_count[card], 4) - 1)) + 'px'" v-on:click="add_card(card)" @contextmenu="$event.preventDefault(); remove_card(card)">
+                            <img v-show="show[card]" class="card-image" v-for="i in [...Array(Math.min(deck_cards_to_count[card], 4)).keys()]" :style="'position: absolute; top: ' + (20 * i) + 'px; z-index: ' + i" class="card-image" :alt="card" :src="card_image(card)">
+                            <!--<div style="position: absolute; z-index: 5; bottom: 32px; left: 24px; width: 174px; height: 72px; background-color: red"></div>-->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="client-tab" style="flex: 1;" v-show="searchtypemodel === 'test'">
+                    <game></game>
+            </div>
+        </div>
+        <div id="decklist">
+            <div id="deckname-editor" style="display: flex;">
+                <b-dropdown right size="sm" style="width: 10%;">
+                    <b-dropdown-item :disabled.sync="storage.decks.length === 1" @click="delete_active_deck()">Delete deck</b-dropdown-item>
+                    <b-dropdown-divider></b-dropdown-divider>
+                    <b-dropdown-item :disabled.sync="!localStorage.agree" @click="download_local_storage()">Download decks to file</b-dropdown-item>
+                    <b-dropdown-item :disabled.sync="!localStorage.agree" @click="document.getElementById('invisiblefileinput').click()">Load decks from file</b-dropdown-item>
+                    <b-dropdown-item @click="localStorage.clear()">Clear local storage</b-dropdown-item>
+                </b-dropdown>
+                <b-form-input squared id="deckname" style="width: 90%;" v-model="active_deck.name" placeholder="Deck name..."></input>
+            </div>
+            <div id="decklist-radio">
+                <b-tabs no-fade fill lazy card nav-class="tab-title-backs">
+                    <b-tab>
+                        <template v-slot:title>
+                            <strong><font color="#6c757d">DECKS</font></strong>
+                        </template>
+                        <draggable v-model="storage.decks" style="display: flex; flex-direction: column;">
+                            <div v-for="(deck, index) in storage.decks" v-show="deck.name.toLowerCase().includes(decks_filter.toLowerCase())" @click="storage.deck_index = index;" class="decktitle" :style="((storage.deck_index === index) ? 'border: 6px solid; height: 46px;' : 'margin: 6px; margin-top: 3px; margin-bottom: 3px; height: 40px; ') + 'border-color: #6c757d; display: flex; justify-content: center; background-image: linear-gradient(' + Math.round(90 * spells_counts[index] + 90).toString() + 'deg, ' + gradient_from_civs(decks_civ_counts[index]) + ')'">
+                                <b-badge v-show="deck.name" pill variant="light" style="user-select: none; margin: auto; filter: brightness(100%);"><font color="#6c757d"><strong>{{ deck.name }}</strong></font></b-badge>
+                            </div>
+                            <!--<b-form-radio-group id="btn-radios-3" v-model="storage.deck_index" :options="deck_list_options" buttons button-variant="outline-secondary" button-squared stacked></b-form-radio-group>-->
+                        </draggable>
+                    </b-tab>
+                    <b-tab>
+                        <template v-slot:title>
+                            <strong><font color="#6c757d">STATS</font></strong>
+                        </template>
+                    </b-tab>
+                </b-tabs>
+            </div>
+
+            <b-form-input squared v-model="decks_filter" placeholder="Filter decks..."></b-form-input>
+            <b-button squared style="border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;" @click="new_deck()">CREATE NEW DECK</b-button>
+        </div>
+        <b-alert v-model="file_error" class="position-fixed fixed-bottom m-0 rounded-0" style="z-index: 2000;" variant="danger" dismissible>
+            Invalid json file!
+        </b-alert>
+        <b-alert v-model="copied" class="position-fixed fixed-bottom m-0 rounded-0" style="z-index: 2000;" variant="success" dismissible>
+            {{ copied_msg }}
+        </b-alert>
+        <b-alert v-if="rodo_show" v-model="rodo_show" class="position-fixed fixed-bottom m-0 rounded-0" style="display: flex; z-index: 2000;" variant="light" dismissible>
+            I'm using HTML5 Local Storage to save your decks between sessions and whatnot. It's like cookies, but even less than that.
+            <b-button pill variant="secondary" style="margin-left: 5px;" size="sm" @click="rodo_show = false; localStorage.agree = true;">Accept</b-button>
+            <b-button pill variant="secondary" style="margin-left: 5px;" size="sm" @click="rodo_show = false;">Dismiss</b-button>
+        </b-alert>
+    </div>
+    <img id="dragimg" style="pointer-events: none; position: absolute; left: 0px; top: 0px; background: red; z-index: -1;">
+    <img class="popup" style="display: none; pointer-events: none; position: absolute; z-index: 10000; width: 222px; height: 307px; border-radius: 10px;" id="preview-image">
+</div>
+
+    <script src="/client/index.js"></script>
+
+</body>
+</html>
