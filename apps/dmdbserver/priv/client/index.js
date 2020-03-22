@@ -567,7 +567,7 @@ Vue.component('card', {
     props: ['cardname', 'dndindex', 'divclass'],
     data() {
         return{
-            image: '/dm_images/' + (this.alwaysback ? 'card_back' : this.cardname.name) + '.jpg',
+            image: '/dm_images/' + this.cardname.name + '.jpg',
         }
     },
 
