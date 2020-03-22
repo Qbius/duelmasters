@@ -200,7 +200,7 @@
                     </div>
                 </div>
                 <div id="decktextcontainer">
-                    <textarea id="decktext" spellcheck="false" :style="decktext_style" v-model="active_deck.text"></textarea>
+                    <textarea id="decktext" spellcheck="false" :style="decktext_style" v-model="active_deck.text" @input="calculate_and_send_change($event)"></textarea>
                     <div id="deckoverlay-container-wrapper" :style="decktext_style">
                         <div id="deckoverlay-container" :style="'height: ' + el_property('decktext', 'height') + ';'">
                             <div v-for="[count, card] in deck_lines" class="deckoverlay">
@@ -261,7 +261,7 @@
                         <template v-slot:title>
                             <strong><font color="#6c757d">DECKS</font></strong>
                         </template>
-                        <draggable v-model="storage.decks" style="display: flex; flex-direction: column;">
+                        <draggable v-model="storage.decks" style="display: flex; flex-direction: column;" @end="deck_moved">
                             <div v-for="(deck, index) in storage.decks" v-show="deck.name.toLowerCase().includes(decks_filter.toLowerCase())" @click="storage.deck_index = index;" class="decktitle" :style="((storage.deck_index === index) ? 'border: 6px solid; height: 46px;' : 'margin: 6px; margin-top: 3px; margin-bottom: 3px; height: 40px; ') + 'border-color: #6c757d; display: flex; justify-content: center; background-image: linear-gradient(' + Math.round(90 * spells_counts[index] + 90).toString() + 'deg, ' + gradient_from_civs(decks_civ_counts[index]) + ')'">
                                 <b-badge v-show="deck.name" pill variant="light" style="user-select: none; margin: auto; filter: brightness(100%);"><font color="#6c757d"><strong>{{ deck.name }}</strong></font></b-badge>
                             </div>
