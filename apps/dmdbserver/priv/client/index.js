@@ -1261,7 +1261,7 @@ var app = new Vue({
             }
             if (!this.storage.decks[this.storage.deck_index].text) {
                 this.storage.decks[this.storage.deck_index].text = '';
-            } 
+            }  
 
             return this.storage.decks[this.storage.deck_index];
         },
