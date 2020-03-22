@@ -1092,6 +1092,10 @@ var app = new Vue({
         card_image(card) {
             return '/dm_images/' + card + '.jpg';
         },
+        deck_moved(e) {
+            if (e.oldIndex === this.storage.deck_index)
+                this.storage.deck_index = e.newIndex;
+        },
         el_property(id, prop) {
             const el = document.getElementById(id);
             return el.currentStyle ? x.currentStyle[prop] : document.defaultView.getComputedStyle(el, null).getPropertyValue(prop);
@@ -1258,7 +1262,7 @@ var app = new Vue({
             if (!this.storage.decks[this.storage.deck_index].text) {
                 this.storage.decks[this.storage.deck_index].text = '';
             }
-            
+
             return this.storage.decks[this.storage.deck_index];
         },
         show() {
