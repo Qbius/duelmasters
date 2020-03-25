@@ -14,5 +14,5 @@ steps:
   displayName: 'Compiling into a tar'
 
 - publish: _build/default/rel/dmdbserver/dmdbserver-0.1.0.tar.gz
-    artifact: tar
-    displayName: 'Publish tar package artifact'
+  artifact: tar
+  displayName: 'Publish tar package artifact'
