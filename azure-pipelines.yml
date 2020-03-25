@@ -6,14 +6,13 @@
 trigger:
 - master
 
-pool:
-  vmImage: 'ubuntu-latest'
+container:
+  image: 'erlang:22.3'
 
 steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+- script: rebar3 tar
+  displayName: 'Compiling into a tar'
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+- publish: _build/default/rel/dmdbserver/dmdbserver-0.1.0.tar.gz
+    artifact: tar
+    displayName: 'Publish tar package artifact'
