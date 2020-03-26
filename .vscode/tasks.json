@@ -4,9 +4,9 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "rebar3 release",
+            "label": "rebar3 compile",
             "type": "shell",
-            "command": "rebar3 release",
+            "command": "rebar3 compile",
             "presentation": {
                 "echo": true,
                 "reveal": "silent",
