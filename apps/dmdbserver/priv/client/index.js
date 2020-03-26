@@ -628,7 +628,7 @@ Vue.component('zone', {
     },
     methods: {
         mouse_down(event) {
-            if (this.dragged === undefined) return;
+            if (this.dragged === undefined || event.button !== 0) return;
 
             let dndindex = event.srcElement.getAttribute('dnd-index');
             if (dndindex === null) return;
