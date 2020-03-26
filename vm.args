@@ -1,2 +1,2 @@
--sname dmdbserver
--setcookie dmdbserver
+-sname cookiename
+-setcookie cookiename
