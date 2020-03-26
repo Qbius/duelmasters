@@ -13,8 +13,12 @@ start(_StartType, _StartArgs) ->
 		    {"/websocket", ws, []}
 	    ]}
 	]),
+	Port = case application:get_env(dmdbserver, port) of
+			{ok, PortNumber} when is_integer(PortNumber) -> PortNumber;
+			_ -> 8080
+		end,
 	{ok, _} = cowboy:start_clear(my_http_listener,
-	    [{port, 8080}],
+		[{port, Port}],
 	    #{env => #{dispatch => Dispatch}}
 	),
 	collaborative_decks:start_link(),
