@@ -10,7 +10,7 @@
             "request": "launch",
             "cwd": "${workspaceRoot}",
             "arguments": "-eval \"application:ensure_all_started(dmdbserver, permanent)\"",
-            "preLaunchTask": "rebar3 compile"
+            "preLaunchTask": "rebar3 release"
         }
     ]
 }
