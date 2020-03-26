@@ -7,7 +7,6 @@ start(_StartType, _StartArgs) ->
     Dispatch = cowboy_router:compile([
 	    {'_', [
 			{"/", cowboy_static, {priv_file, dmdbserver, "client/index.html"}},
-			{"/[...]", cowboy_static, {priv_dir, dmdbserver, "root"}},
 			{"/client/[...]", cowboy_static, {priv_dir, dmdbserver, "client"}},
 			{"/dm_images/[...]", cowboy_static, {priv_dir, dmdbserver, "dm_images"}},
 			{"/icons/[...]", cowboy_static, {priv_dir, dmdbserver, "icons"}},
